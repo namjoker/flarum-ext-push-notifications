@@ -7,7 +7,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-namespace BlissfulPlugins\Notifications\Listeners;
+namespace BlissfulPlugins\Notifications\Listener;
 
 use Flarum\Core\Notification\BlueprintInterface;
 use Flarum\Event\NotificationWillBeSent;

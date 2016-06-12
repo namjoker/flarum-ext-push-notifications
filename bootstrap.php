@@ -8,10 +8,11 @@
  */
 
 use BlissfulPlugins\Notifications\Logger;
-use BlissfulPlugins\Notifications\Listeners;
+use BlissfulPlugins\Notifications\Listener;
 use Illuminate\Contracts\Events\Dispatcher;
 
 return function (Dispatcher $events) {
     Logger::debug('init');
-    $events->subscribe(Listeners\PushNotification::class);
+    $events->subscribe(Listener\AddApi::class);
+    $events->subscribe(Listener\PushNotification::class);
 };
