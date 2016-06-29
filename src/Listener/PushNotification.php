@@ -9,11 +9,18 @@
 
 namespace BlissfulPlugins\Notifications\Listener;
 
+use Flarum\Core\User;
+use Flarum\Core\Discussion;
+use Flarum\Core\Post;
 use Flarum\Core\Notification\BlueprintInterface;
 use Flarum\Event\NotificationWillBeSent;
 use Flarum\Settings\SettingsRepositoryInterface;
+use Flarum\Likes\Notification\PostLikedBlueprint;
+use Flarum\Mentions\Notification\UserMentionedBlueprint;
+use Flarum\Subscriptions\Notification\NewPostBlueprint;
 use Illuminate\Contracts\Events\Dispatcher;
 use BlissfulPlugins\Notifications\Logger;
+use BlissfulPlugins\Notifications\OneSignalFactory;
 
 class PushNotification
 {
@@ -66,25 +73,81 @@ class PushNotification
 
     public function sendNotification($blueprint, $recipients)
     {
-        Logger::debug('Sending ' . $blueprint::getType() . ' to ' . count($recipients) . ' receipient(s)');
+        $body = $this->getNotificationBody($blueprint);
+        $url = $this->getNotificationUrl($blueprint);
+
+        // Convert receipients to a list of tags
+        $tags = [];
+        foreach ($recipients as $recipient) {
+            array_push($tags, [
+                'key' => 'userId',
+                'relation' => '=',
+                'value' => $recipient->id
+            ]);
+        }
+
+        // Send notification
+        $api = OneSignalFactory::create($this->settings);
+        $api->notifications->add([
+            'contents' => [
+                'en' => $body
+            ],
+            'data' => [
+                'url' => $url
+            ],
+            'tags' => $tags
+        ]);
     }
 
     /**
-     * Construct an array of attributes to be stored in a notification record in
-     * the database, given a notification blueprint.
+     * Returns the notification body/message for a given blueprint.
+     * TODO i18n
      *
      * @param BlueprintInterface $blueprint
-     * @return array
+     * @return string
      */
-    protected function getAttributes(BlueprintInterface $blueprint)
+    protected function getNotificationBody(BlueprintInterface $blueprint)
     {
-        return [
-            'type'       => $blueprint::getType(),
-            'sender_id'  => ($sender = $blueprint->getSender()) ? $sender->id : null,
-            'subject_id' => ($subject = $blueprint->getSubject()) ? $subject->id : null,
-            'data'       => ($data = $blueprint->getData()) ? json_encode($data) : null,
-            'view'       => $blueprint->getEmailView(),
-            'subject'    => $blueprint->getEmailSubject()
-        ];
+        $sender = 'Somebody';
+        if (is_a($blueprint->getSender(), User::class)) {
+            $sender = $blueprint->getSender()->username;
+        }
+
+        $discussion = 'a discussion';
+        if (is_a($blueprint->getSubject(), Discussion::class)) {
+            $discussion = $blueprint->getSubject()->title;
+        } elseif (is_a($blueprint->getSubject(), Post::class)) {
+            $discussion = $blueprint->getSubject()->discussion->title;
+        }
+
+        if (is_a($blueprint, PostLikedBlueprint::class)) {
+            return $sender . " liked your post in " . $discussion;
+        } elseif (is_a($blueprint, UserMentionedBlueprint::class)) {
+            return $sender . " mentioned you in " . $discussion;
+        } elseif (is_a($blueprint, NewPostBlueprint::class)) {
+            return $sender . " replied to " . $discussion;
+        } else {
+            return $blueprint->getEmailSubject();
+        }
+    }
+
+    /**
+     * Returns the url for the given blueprint.
+     *
+     * @param BlueprintInterface $blueprint
+     * @return string or null
+     */
+    protected function getNotificationUrl(BlueprintInterface $blueprint)
+    {
+        $discussionId = null;
+        if (is_a($blueprint->getSubject(), Discussion::class)) {
+            $discussionId = $blueprint->getSubject()->id;
+        } elseif (is_a($blueprint->getSubject(), Post::class)) {
+            $discussionId = $blueprint->getSubject()->discussion->id;
+        }
+
+        if ($discussionId) {
+            return app('Flarum\Forum\UrlGenerator')->toRoute('discussion', ['id' => $discussionId]);
+        }
     }
 }

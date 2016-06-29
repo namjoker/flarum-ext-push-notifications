@@ -12,7 +12,6 @@ use BlissfulPlugins\Notifications\Listener;
 use Illuminate\Contracts\Events\Dispatcher;
 
 return function (Dispatcher $events) {
-    Logger::debug('init');
-    $events->subscribe(Listener\AddApi::class);
+    $events->subscribe(Listener\AddClientAssets::class);
     $events->subscribe(Listener\PushNotification::class);
 };

@@ -1,0 +1,6 @@
+BlissfulPlugins-push-notifications:
+  admin:
+    notifications_settings:
+      title: "OneSignal Settings"
+      application_id_label: 'App ID'
+      application_auth_key_label: 'REST API Key'
