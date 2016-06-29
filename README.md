@@ -11,7 +11,7 @@ mobile devices as push notifications.
 It uses the [OneSignal](http://onesignal.com/) service, which is free and
 supports native push notifications on all the major mobile platforms. You'll
 need a mobile application in order to receive the notifications - a sample
-built in PhoneGap is available [here](TBC).
+built in PhoneGap is available [here](https://github.com/BlissfulPlugins/flarum-ext-push-notifications-phonegap).
 
 Note that this plugin doesn't support HTML5 push notifications, which don't
 work on iOS.
